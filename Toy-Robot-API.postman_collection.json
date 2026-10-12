@@ -1,0 +1,840 @@
+{
+  "info": {
+    "name": "Toy Robot API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Truck robot on a 5x5 table. Run 'Create robot' first; it stores the id in {{robotId}} for the other requests."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "robotId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Robots",
+      "item": [
+        {
+          "name": "Create robot",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/robots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots"
+              ]
+            },
+            "description": "Creates an unplaced robot and saves its id to {{robotId}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"robotId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List robots",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/robots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Get robot",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/robots/{{robotId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots",
+                "{{robotId}}"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Place robot (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/robots/{{robotId}}/placement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots",
+                "{{robotId}}",
+                "placement"
+              ]
+            },
+            "description": "PLACE. Returns 422 if the position is off the table.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"x\": 1,\n  \"y\": 2,\n  \"facing\": \"EAST\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "MOVE",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/robots/{{robotId}}/commands",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots",
+                "{{robotId}}",
+                "commands"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"MOVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "LEFT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/robots/{{robotId}}/commands",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots",
+                "{{robotId}}",
+                "commands"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"LEFT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "RIGHT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/robots/{{robotId}}/commands",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots",
+                "{{robotId}}",
+                "commands"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"RIGHT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "REPORT",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/robots/{{robotId}}/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots",
+                "{{robotId}}",
+                "report"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Run command sequence (JSON)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/robots/{{robotId}}/commands",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots",
+                "{{robotId}}",
+                "commands"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"commands\": \"PLACE 1,2,EAST MOVE MOVE LEFT MOVE REPORT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Run command sequence (plain text)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/plain"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/robots/{{robotId}}/commands",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots",
+                "{{robotId}}",
+                "commands"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "PLACE 0,0,NORTH\nMOVE\nRIGHT\nMOVE\nREPORT"
+            }
+          }
+        },
+        {
+          "name": "Delete robot",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/robots/{{robotId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots",
+                "{{robotId}}"
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Specification examples",
+      "item": [
+        {
+          "name": "Example 1 - create robot",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/robots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"robotId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Example 1 - PLACE 0,0,NORTH MOVE REPORT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/robots/{{robotId}}/commands",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots",
+                "{{robotId}}",
+                "commands"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"commands\": \"PLACE 0,0,NORTH MOVE REPORT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"outputs = ['0,1,NORTH']\", () => pm.expect(pm.response.json().outputs).to.eql([\"0,1,NORTH\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Example 2 - create robot",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/robots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"robotId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Example 2 - PLACE 0,0,NORTH LEFT REPORT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/robots/{{robotId}}/commands",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots",
+                "{{robotId}}",
+                "commands"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"commands\": \"PLACE 0,0,NORTH LEFT REPORT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"outputs = ['0,0,WEST']\", () => pm.expect(pm.response.json().outputs).to.eql([\"0,0,WEST\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Example 3 - create robot",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/robots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"robotId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Example 3 - PLACE 1,2,EAST MOVE MOVE LEFT MOVE REPORT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/robots/{{robotId}}/commands",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots",
+                "{{robotId}}",
+                "commands"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"commands\": \"PLACE 1,2,EAST MOVE MOVE LEFT MOVE REPORT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"outputs = ['3,3,NORTH']\", () => pm.expect(pm.response.json().outputs).to.eql([\"3,3,NORTH\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Example 4 - create robot",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/robots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"robotId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Example 4 - MOVE REPORT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/robots/{{robotId}}/commands",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots",
+                "{{robotId}}",
+                "commands"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"commands\": \"MOVE REPORT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"outputs = ['ROBOT MISSING']\", () => pm.expect(pm.response.json().outputs).to.eql([\"ROBOT MISSING\"]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Edge cases",
+      "item": [
+        {
+          "name": "Create robot",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/robots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"robotId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Move that would fall is ignored",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/robots/{{robotId}}/commands",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots",
+                "{{robotId}}",
+                "commands"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"commands\": \"PLACE 0,4,NORTH MOVE RIGHT MOVE REPORT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"outputs = ['1,4,EAST']\", () => pm.expect(pm.response.json().outputs).to.eql([\"1,4,EAST\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Off-table PLACE is rejected (422)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/robots/{{robotId}}/placement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots",
+                "{{robotId}}",
+                "placement"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"x\": 5,\n  \"y\": 0,\n  \"facing\": \"NORTH\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid command (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/robots/{{robotId}}/commands",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "robots",
+                "{{robotId}}",
+                "commands"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"commands\": \"PLACE 0,0,NORTH JUMP\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Liveness probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health/liveness",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health",
+                "liveness"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Readiness probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health/readiness",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health",
+                "readiness"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

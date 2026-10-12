@@ -1,0 +1,748 @@
+openapi: 3.1.0
+info:
+  title: Toy Robot API
+  description: |-
+    A truck robot on a 5 x 5 tabletop. (0,0) is the SOUTH WEST corner.
+    Any placement or move that would put the robot off the table is ignored; later valid commands still work. A robot that is not on the table ignores MOVE, LEFT and RIGHT, and REPORT answers `ROBOT MISSING`.
+  version: 1.0.0
+servers:
+- url: http://localhost:8000
+  description: Local development server
+tags:
+- name: Robots
+  description: "Create, inspect and delete robots"
+- name: Robot control
+  description: "PLACE, MOVE, LEFT, RIGHT and REPORT"
+- name: Actuator
+  description: Monitor and interact
+  externalDocs:
+    description: Spring Boot Actuator Web API Documentation
+    url: https://docs.spring.io/spring-boot/docs/current/actuator-api/html/
+paths:
+  /robots/{id}/placement:
+    put:
+      tags:
+      - Robot control
+      summary: PLACE the robot
+      description: "Puts the robot at X,Y facing F. Idempotent. A position off the\
+        \ table is rejected with 422 and the robot stays where it was. `facing` is\
+        \ case-insensitive."
+      operationId: placeRobot
+      parameters:
+      - name: id
+        in: path
+        description: Robot id returned by POST /robots
+        required: true
+        schema:
+          type: string
+        example: 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+      requestBody:
+        description: Where to put the robot
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlacementRequest"
+            example:
+              x: 1
+              "y": 2
+              facing: EAST
+        required: true
+      responses:
+        "200":
+          description: Robot placed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RobotResponse"
+              example:
+                id: 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+                placed: true
+                position:
+                  x: 1
+                  "y": 2
+                  facing: EAST
+                report: "1,2,EAST"
+                table:
+                  width: 5
+                  height: 5
+                links:
+                  self: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+                  placement: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/placement
+                  commands: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/commands
+                  report: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/report
+        "400":
+          description: "Body is not {x, y, facing} with integer x and y and a valid\
+            \ direction"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: INVALID_PLACEMENT
+                  message: "\"facing\" must be one of NORTH, EAST, SOUTH, WEST"
+        "404":
+          description: No robot with this id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: ROBOT_NOT_FOUND
+                  message: No robot with id 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+        "415":
+          description: Content-Type is not application/json (or text/plain for commands)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: UNSUPPORTED_MEDIA_TYPE
+                  message: "Supported content types: [application/json]"
+        "422":
+          description: Position is off the table; the robot is unchanged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: OFF_TABLE
+                  message: "Position (5,0) is outside the 5x5 table; placement ignored"
+  /robots:
+    get:
+      tags:
+      - Robots
+      summary: List robots
+      description: Returns every robot and its current state.
+      operationId: listRobots
+      responses:
+        "200":
+          description: All robots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RobotListResponse"
+              example:
+                robots:
+                - id: 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+                  placed: true
+                  position:
+                    x: 1
+                    "y": 2
+                    facing: EAST
+                  report: "1,2,EAST"
+                  table:
+                    width: 5
+                    height: 5
+                  links:
+                    self: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+                    placement: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/placement
+                    commands: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/commands
+                    report: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/report
+    post:
+      tags:
+      - Robots
+      summary: Create a robot
+      description: Creates a robot that is not yet on the table. The Location header
+        points at the new robot.
+      operationId: createRobot
+      responses:
+        "201":
+          description: Robot created
+          headers:
+            Location:
+              description: Robot id returned by POST /robots
+              style: simple
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RobotResponse"
+              example:
+                id: 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+                placed: false
+                position: null
+                report: ROBOT MISSING
+                table:
+                  width: 5
+                  height: 5
+                links:
+                  self: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+                  placement: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/placement
+                  commands: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/commands
+                  report: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/report
+  /robots/{id}/commands:
+    post:
+      tags:
+      - Robot control
+      summary: Run commands
+      description: "Runs PLACE, MOVE, LEFT, RIGHT and REPORT in order. Commands that\
+        \ would make the robot fall, or that arrive before a valid PLACE, are ignored\
+        \ and later commands still run; each result says whether it was APPLIED or\
+        \ IGNORED and why. The whole batch is parsed first, so a syntax error returns\
+        \ 400 and runs nothing. At most 10,000 commands and 1 MB per request. Send\
+        \ JSON, or `text/plain` with one command per line or space-separated."
+      operationId: runCommands
+      parameters:
+      - name: id
+        in: path
+        description: Robot id returned by POST /robots
+        required: true
+        schema:
+          type: string
+        example: 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+      requestBody:
+        description: "Commands as a string, a list of strings, or a single command"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommandsRequest"
+            examples:
+              Command sequence:
+                description: Command sequence
+                value:
+                  commands: "PLACE 1,2,EAST MOVE MOVE LEFT MOVE REPORT"
+              List of commands:
+                description: List of commands
+                value:
+                  commands:
+                  - "PLACE 1,2,EAST"
+                  - MOVE
+                  - MOVE
+                  - LEFT
+                  - MOVE
+                  - REPORT
+              Single command:
+                description: Single command
+                value:
+                  command: MOVE
+          text/plain:
+            schema:
+              type: string
+            examples:
+              Plain text:
+                description: Plain text
+                value: |-
+                  PLACE 1,2,EAST
+                  MOVE
+                  MOVE
+                  LEFT
+                  MOVE
+                  REPORT
+        required: true
+      responses:
+        "200":
+          description: Commands ran; see each result's status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandsResponse"
+              examples:
+                Command sequence:
+                  description: Command sequence
+                  value:
+                    outputs:
+                    - "3,3,NORTH"
+                    results:
+                    - command: "PLACE 1,2,EAST"
+                      status: APPLIED
+                    - command: MOVE
+                      status: APPLIED
+                    - command: MOVE
+                      status: APPLIED
+                    - command: LEFT
+                      status: APPLIED
+                    - command: MOVE
+                      status: APPLIED
+                    - command: REPORT
+                      status: APPLIED
+                      output: "3,3,NORTH"
+                    robot:
+                      id: 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+                      placed: true
+                      position:
+                        x: 3
+                        "y": 3
+                        facing: NORTH
+                      report: "3,3,NORTH"
+                      table:
+                        width: 5
+                        height: 5
+                      links:
+                        self: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+                        placement: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/placement
+                        commands: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/commands
+                        report: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/report
+                Move that would fall is ignored:
+                  description: Move that would fall is ignored
+                  value:
+                    outputs:
+                    - "1,4,EAST"
+                    results:
+                    - command: "PLACE 0,4,NORTH"
+                      status: APPLIED
+                    - command: MOVE
+                      status: IGNORED
+                      reason: WOULD_FALL
+                    - command: RIGHT
+                      status: APPLIED
+                    - command: MOVE
+                      status: APPLIED
+                    - command: REPORT
+                      status: APPLIED
+                      output: "1,4,EAST"
+                    robot:
+                      id: 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+                      placed: true
+                      position:
+                        x: 1
+                        "y": 4
+                        facing: EAST
+                      report: "1,4,EAST"
+                      table:
+                        width: 5
+                        height: 5
+                      links:
+                        self: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+                        placement: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/placement
+                        commands: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/commands
+                        report: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/report
+                Commands before PLACE:
+                  description: Commands before PLACE
+                  value:
+                    outputs:
+                    - ROBOT MISSING
+                    results:
+                    - command: MOVE
+                      status: IGNORED
+                      reason: NOT_PLACED
+                    - command: REPORT
+                      status: IGNORED
+                      reason: NOT_PLACED
+                      output: ROBOT MISSING
+                    robot:
+                      id: 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+                      placed: false
+                      position: null
+                      report: ROBOT MISSING
+                      table:
+                        width: 5
+                        height: 5
+                      links:
+                        self: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+                        placement: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/placement
+                        commands: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/commands
+                        report: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/report
+        "400":
+          description: "Unknown command, bad direction, malformed PLACE or malformed\
+            \ JSON; nothing ran"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: "#/components/schemas/CommandsResponse"
+                - $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: INVALID_COMMAND
+                  message: Unknown command "JUMP"
+        "404":
+          description: No robot with this id
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: "#/components/schemas/CommandsResponse"
+                - $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: ROBOT_NOT_FOUND
+                  message: No robot with id 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+        "413":
+          description: "More than 10,000 commands, or a body over 1 MB; nothing ran"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: "#/components/schemas/CommandsResponse"
+                - $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: TOO_MANY_COMMANDS
+                  message: A request may contain at most 10000 commands
+        "415":
+          description: Content-Type is not application/json (or text/plain for commands)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: "#/components/schemas/CommandsResponse"
+                - $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: UNSUPPORTED_MEDIA_TYPE
+                  message: "Supported content types: [application/json]"
+  /robots/{id}:
+    get:
+      tags:
+      - Robots
+      summary: Get a robot
+      description: Returns the robot's current position and links.
+      operationId: getRobot
+      parameters:
+      - name: id
+        in: path
+        description: Robot id returned by POST /robots
+        required: true
+        schema:
+          type: string
+        example: 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+      responses:
+        "200":
+          description: The robot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RobotResponse"
+              examples:
+                Placed robot:
+                  description: Placed robot
+                  value:
+                    id: 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+                    placed: true
+                    position:
+                      x: 1
+                      "y": 2
+                      facing: EAST
+                    report: "1,2,EAST"
+                    table:
+                      width: 5
+                      height: 5
+                    links:
+                      self: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+                      placement: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/placement
+                      commands: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/commands
+                      report: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/report
+                Robot not on the table:
+                  description: Robot not on the table
+                  value:
+                    id: 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+                    placed: false
+                    position: null
+                    report: ROBOT MISSING
+                    table:
+                      width: 5
+                      height: 5
+                    links:
+                      self: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+                      placement: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/placement
+                      commands: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/commands
+                      report: /robots/3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e/report
+        "404":
+          description: No robot with this id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: ROBOT_NOT_FOUND
+                  message: No robot with id 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+    delete:
+      tags:
+      - Robots
+      summary: Delete a robot
+      description: Removes the robot. Later requests for it return 404.
+      operationId: deleteRobot
+      parameters:
+      - name: id
+        in: path
+        description: Robot id returned by POST /robots
+        required: true
+        schema:
+          type: string
+        example: 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+      responses:
+        "204":
+          description: Robot deleted
+        "404":
+          description: No robot with this id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: ROBOT_NOT_FOUND
+                  message: No robot with id 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+  /robots/{id}/report:
+    get:
+      tags:
+      - Robot control
+      summary: REPORT the robot's position
+      description: "Returns X,Y,F, or `ROBOT MISSING` if the robot has not been placed."
+      operationId: reportRobot
+      parameters:
+      - name: id
+        in: path
+        description: Robot id returned by POST /robots
+        required: true
+        schema:
+          type: string
+        example: 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+      responses:
+        "200":
+          description: Current position
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportResponse"
+              examples:
+                Placed robot:
+                  description: Placed robot
+                  value:
+                    output: "3,3,NORTH"
+                    placed: true
+                    position:
+                      x: 3
+                      "y": 3
+                      facing: NORTH
+                Robot not on the table:
+                  description: Robot not on the table
+                  value:
+                    output: ROBOT MISSING
+                    placed: false
+                    position: null
+        "404":
+          description: No robot with this id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: ROBOT_NOT_FOUND
+                  message: No robot with id 3f2b6c1e-8a4d-4f7b-9c2e-1d5a6b7c8d9e
+  /actuator:
+    get:
+      tags:
+      - Actuator
+      summary: Actuator root web endpoint
+      operationId: links
+      responses:
+        "200":
+          description: OK
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    $ref: "#/components/schemas/Link"
+            application/vnd.spring-boot.actuator.v2+json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    $ref: "#/components/schemas/Link"
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    $ref: "#/components/schemas/Link"
+  /actuator/info:
+    get:
+      tags:
+      - Actuator
+      summary: Actuator web endpoint 'info'
+      operationId: info
+      responses:
+        "200":
+          description: OK
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                type: object
+            application/vnd.spring-boot.actuator.v2+json:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
+  /actuator/health:
+    get:
+      tags:
+      - Actuator
+      summary: Actuator web endpoint 'health'
+      operationId: health
+      responses:
+        "200":
+          description: OK
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                type: object
+            application/vnd.spring-boot.actuator.v2+json:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
+components:
+  schemas:
+    PlacementRequest:
+      type: object
+      description: Position to place the robot at
+      properties:
+        x:
+          type: integer
+          format: int64
+          description: "Column, 0 (WEST edge) to 4"
+          example: 1
+        "y":
+          type: integer
+          format: int64
+          description: "Row, 0 (SOUTH edge) to 4"
+          example: 2
+        facing:
+          type: string
+          description: Direction the robot faces (case-insensitive)
+          enum:
+          - NORTH
+          - EAST
+          - SOUTH
+          - WEST
+          example: EAST
+      required:
+      - facing
+      - x
+      - "y"
+    Position:
+      type: object
+      properties:
+        x:
+          type: integer
+          format: int32
+        "y":
+          type: integer
+          format: int32
+        facing:
+          type: string
+          enum:
+          - NORTH
+          - EAST
+          - SOUTH
+          - WEST
+    RobotResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        placed:
+          type: boolean
+        position:
+          $ref: "#/components/schemas/Position"
+        report:
+          type: string
+        table:
+          $ref: "#/components/schemas/Table"
+        links:
+          type: object
+          additionalProperties:
+            type: string
+    Table:
+      type: object
+      properties:
+        width:
+          type: integer
+          format: int32
+        height:
+          type: integer
+          format: int32
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          $ref: "#/components/schemas/Error"
+    CommandsRequest:
+      type: object
+      description: Send either `commands` (a string or a list of strings) or a single
+        `command`
+      properties:
+        commands:
+          type: string
+          description: "Space- or newline-separated commands, or a JSON array of them"
+          example: "PLACE 1,2,EAST MOVE MOVE LEFT MOVE REPORT"
+        command:
+          type: string
+          description: One command
+          example: MOVE
+    CommandResult:
+      type: object
+      properties:
+        command:
+          type: string
+        status:
+          type: string
+          enum:
+          - APPLIED
+          - IGNORED
+        reason:
+          type: string
+          enum:
+          - NOT_PLACED
+          - OFF_TABLE
+          - WOULD_FALL
+        output:
+          type: string
+    CommandsResponse:
+      type: object
+      properties:
+        outputs:
+          type: array
+          items:
+            type: string
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommandResult"
+        robot:
+          $ref: "#/components/schemas/RobotResponse"
+    RobotListResponse:
+      type: object
+      properties:
+        robots:
+          type: array
+          items:
+            $ref: "#/components/schemas/RobotResponse"
+    ReportResponse:
+      type: object
+      properties:
+        output:
+          type: string
+        placed:
+          type: boolean
+        position:
+          $ref: "#/components/schemas/Position"
+    Link:
+      type: object
+      properties:
+        href:
+          type: string
+        templated:
+          type: boolean
